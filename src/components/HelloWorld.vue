@@ -1,59 +1,120 @@
 <template>
-  <div class="hello">
-    <h1>{{ msg }}</h1>
-    <p>
-      For a guide and recipes on how to configure / customize this project,<br>
-      check out the
-      <a href="https://cli.vuejs.org" target="_blank" rel="noopener">vue-cli documentation</a>.
-    </p>
-    <h3>Installed CLI Plugins</h3>
-    <ul>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-babel" target="_blank" rel="noopener">babel</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-pwa" target="_blank" rel="noopener">pwa</a></li>
-      <li><a href="https://github.com/vuejs/vue-cli/tree/dev/packages/%40vue/cli-plugin-router" target="_blank" rel="noopener">router</a></li>
-    </ul>
-    <h3>Essential Links</h3>
-    <ul>
-      <li><a href="https://vuejs.org" target="_blank" rel="noopener">Core Docs</a></li>
-      <li><a href="https://forum.vuejs.org" target="_blank" rel="noopener">Forum</a></li>
-      <li><a href="https://chat.vuejs.org" target="_blank" rel="noopener">Community Chat</a></li>
-      <li><a href="https://twitter.com/vuejs" target="_blank" rel="noopener">Twitter</a></li>
-      <li><a href="https://news.vuejs.org" target="_blank" rel="noopener">News</a></li>
-    </ul>
-    <h3>Ecosystem</h3>
-    <ul>
-      <li><a href="https://router.vuejs.org" target="_blank" rel="noopener">vue-router</a></li>
-      <li><a href="https://vuex.vuejs.org" target="_blank" rel="noopener">vuex</a></li>
-      <li><a href="https://github.com/vuejs/vue-devtools#vue-devtools" target="_blank" rel="noopener">vue-devtools</a></li>
-      <li><a href="https://vue-loader.vuejs.org" target="_blank" rel="noopener">vue-loader</a></li>
-      <li><a href="https://github.com/vuejs/awesome-vue" target="_blank" rel="noopener">awesome-vue</a></li>
-    </ul>
-  </div>
+	<div class="hello">
+		<b-button :variant="buttonVariant" @click="rec">{{ buttonText }}</b-button>
+		<div style="display: flex; flex-direction: column; justify-content: space-evenly; margin-top: 10px;">
+			<span v-if="audioMessages.length > 0" v-for="audio of audioMessages">
+				<playable-audio :audio-url="audio"></playable-audio>
+			</span>
+		</div>
+	</div>
 </template>
 
 <script>
+import * as utils from '@/utils';
+import PlayableAudio from "@/components/PlayableAudio";
+
 export default {
-  name: 'HelloWorld',
-  props: {
-    msg: String
-  }
+	name: 'HelloWorld',
+	components: {PlayableAudio},
+	props: {
+		msg: String,
+	},
+	data() {
+		return {
+			recorder: {},
+			mediaStream: {},
+			audioMessages: [],
+			isRecording: false,
+			buttonVariant: "success",
+			buttonText: "Start"
+		}
+	},
+	mounted() {
+		this.audioMessages = [];
+		this.$socket.emit("subscribe", {
+			roomID: "test",
+			sender: "test"
+		});
+	},
+
+	methods: {
+		async rec() {
+			if (this.isRecording) {
+				this.buttonVariant = 'success';
+				this.buttonText = "Start";
+				this.isRecording = false;
+				await this.stopRecording();
+			} else {
+				this.isRecording = true;
+				this.buttonText = "Stop";
+				this.buttonVariant = 'danger';
+				await this.startRecording();
+			}
+		},
+		async startRecording() {
+			if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+				this.mediaStream = await navigator.mediaDevices.getUserMedia(
+					// constraints - only audio needed for this app
+					{
+						audio: true
+					});
+				this.recorder = new MediaRecorder(this.mediaStream);
+				this.recorder.start();
+				this.recorder.ondataavailable = this.onDataAvailable;
+			} else {
+				console.log('getUserMedia not supported on your browser!');
+				this.isRecording = false;
+			}
+		},
+
+		async stopRecording() {
+			this.recorder.stop();
+			this.mediaStream.getTracks().forEach(t => {
+				t.stop();
+			});
+		},
+
+		async onDataAvailable(blobEvt) {
+			const text = await utils.blobToBase64(blobEvt.data);
+			const vm = {
+				type: 'audio/webm;codecs=opus',
+				data: text,
+				sender: "test",
+				roomID: "test"
+			};
+			console.log("Send: ", vm);
+			this.$socket.emit("sendVoiceMessage", vm);
+		}
+	},
+	sockets: {
+		async receiveVoiceMessage(vm) {
+			console.log("Recv", vm);
+			const raw = vm.data.split("base64,")[1];
+			const blob = await utils.b64toBlob(raw, vm.type);
+			const audioUrl = URL.createObjectURL(blob);
+			this.audioMessages.push(audioUrl);
+		}
+	},
 }
 </script>
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
 h3 {
-  margin: 40px 0 0;
+	margin: 40px 0 0;
 }
+
 ul {
-  list-style-type: none;
-  padding: 0;
+	list-style-type: none;
+	padding: 0;
 }
+
 li {
-  display: inline-block;
-  margin: 0 10px;
+	display: inline-block;
+	margin: 0 10px;
 }
+
 a {
-  color: #42b983;
+	color: #42b983;
 }
 </style>
