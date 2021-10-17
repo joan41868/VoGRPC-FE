@@ -1,6 +1,7 @@
 <template>
-	<span >
-		<b-button variant="outline-primary" size="md" class="audio-msg-container" @click="playAudio"><b-icon icon="play"></b-icon></b-button>
+	<span class="audio-container">
+		<h5>{{sender}}:</h5>
+		<b-button variant="outline-secondary1" size="md" class="audio-msg-button" @click="playAudio"><b-icon icon="play"></b-icon></b-button>
 	</span>
 </template>
 
@@ -9,6 +10,7 @@ export default {
 	name: "PlayableAudio",
 	props: {
 		audioUrl : "",
+		sender: ""
 	},
 	methods: {
 		async playAudio() {
@@ -20,11 +22,19 @@ export default {
 </script>
 
 <style scoped>
-.audio-msg-container {
+.audio-container {
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	max-width: 25%;
+	margin: auto;
+	border: 1px solid whitesmoke;
 	margin-top: 3px;
 	margin-bottom: 3px;
-	margin-left: 3px;
-	margin-right: 3px;
+	padding: 5px 5px 5px 5px;
+	border-radius: 9px;
+}
+.audio-msg-button {
 	padding: 3px 3px 3px 3px;
 }
 </style>

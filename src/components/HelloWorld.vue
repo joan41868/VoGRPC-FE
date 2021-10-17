@@ -1,11 +1,42 @@
 <template>
 	<div class="hello">
-		<b-button :variant="buttonVariant" @click="rec">{{ buttonText }}</b-button>
+		<b-modal id="usernameSelectModal"
+				 @ok="subscribe"
+				 ok-variant="outline-success"
+				 :title='"Chat configuration"'
+				 cancel-disabled
+				 body-text-variant="success"
+				 body-bg-variant="dark"
+				 header-bg-variant="dark"
+				 footer-bg-variant="dark"
+		>
+			<b-input placeholder="Username" class="modal-input" v-model="username"></b-input>
+			<b-input placeholder="Room ID" class="modal-input" v-model="room"></b-input>
+		</b-modal>
+
+		<div style="display: flex; flex-direction: row; justify-content: space-between; max-width: 50%; margin: auto;">
+			<h4>Connected as "{{ username }}"</h4>
+			<b-button variant="warning" size="sm" @click="editUsername">
+				<b-icon icon="pencil"></b-icon>
+			</b-button>
+		</div>
+
 		<div style="display: flex; flex-direction: column; justify-content: space-evenly; margin-top: 10px;">
 			<span v-if="audioMessages.length > 0" v-for="audio of audioMessages">
-				<playable-audio :audio-url="audio"></playable-audio>
+				<playable-audio :audio-url="audio.audioUrl" :sender="audio.sender"></playable-audio>
 			</span>
 		</div>
+		<div style="display: flex; flex-direction: row; justify-content: center;">
+			<div class="controller">
+				<b-button :variant="buttonVariant" @click="rec">
+					<b-icon :icon="iconText"></b-icon>
+				</b-button>
+				<b-button variant="outline-danger" @click="() => audioMessages = []">
+					<b-icon icon="trash"></b-icon>
+				</b-button>
+			</div>
+		</div>
+
 	</div>
 </template>
 
@@ -25,29 +56,43 @@ export default {
 			mediaStream: {},
 			audioMessages: [],
 			isRecording: false,
-			buttonVariant: "success",
-			buttonText: "Start"
+			buttonVariant: "outline-success",
+			iconText: "play",
+			username: "",
+			room: "general"
 		}
 	},
 	mounted() {
 		this.audioMessages = [];
-		this.$socket.emit("subscribe", {
-			roomID: "test",
-			sender: "test"
-		});
+		if (this.username.length === 0) {
+			this.$bvModal.show('usernameSelectModal');
+		}
 	},
 
 	methods: {
+		subscribe() {
+			const username = this.username;
+			const room = this.room;
+			console.log(`joining with`, username);
+			this.$socket.emit("subscribe", {
+				roomID: room,
+				sender: username
+			});
+		},
+		editUsername() {
+			this.$bvModal.show('usernameSelectModal');
+
+		},
 		async rec() {
 			if (this.isRecording) {
-				this.buttonVariant = 'success';
-				this.buttonText = "Start";
+				this.buttonVariant = 'outline-success';
+				this.iconText = "play";
 				this.isRecording = false;
 				await this.stopRecording();
 			} else {
 				this.isRecording = true;
-				this.buttonText = "Stop";
-				this.buttonVariant = 'danger';
+				this.iconText = "stop";
+				this.buttonVariant = 'outline-danger';
 				await this.startRecording();
 			}
 		},
@@ -79,7 +124,7 @@ export default {
 			const vm = {
 				type: 'audio/webm;codecs=opus',
 				data: text,
-				sender: "test",
+				sender: this.username,
 				roomID: "test"
 			};
 			console.log("Send: ", vm);
@@ -92,7 +137,11 @@ export default {
 			const raw = vm.data.split("base64,")[1];
 			const blob = await utils.b64toBlob(raw, vm.type);
 			const audioUrl = URL.createObjectURL(blob);
-			this.audioMessages.push(audioUrl);
+			this.audioMessages.push({
+				audioUrl,
+				sender: vm.sender
+			});
+			// await new Audio(audioUrl).play();
 		}
 	},
 }
@@ -100,21 +149,24 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h3 {
-	margin: 40px 0 0;
+
+.hello {
+	margin-top: 10px;
 }
 
-ul {
-	list-style-type: none;
-	padding: 0;
+.controller {
+	position: fixed;
+	bottom: 10px;
+	display: flex;
+	flex-direction: row;
+	justify-content: space-between;
+	width: 50%;
+	margin: auto;
+	/*margin: auto;*/
+}
+.modal-input{
+	margin-top: 3px;
+	margin-bottom: 3px;
 }
 
-li {
-	display: inline-block;
-	margin: 0 10px;
-}
-
-a {
-	color: #42b983;
-}
 </style>
