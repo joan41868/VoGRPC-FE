@@ -59,7 +59,7 @@ export default {
 			buttonVariant: "outline-success",
 			iconText: "play",
 			username: "",
-			room: "general"
+			room: ""
 		}
 	},
 	mounted() {
@@ -85,15 +85,15 @@ export default {
 		},
 		async rec() {
 			if (this.isRecording) {
+				await this.stopRecording();
 				this.buttonVariant = 'outline-success';
 				this.iconText = "play";
 				this.isRecording = false;
-				await this.stopRecording();
 			} else {
+				await this.startRecording();
 				this.isRecording = true;
 				this.iconText = "stop";
 				this.buttonVariant = 'outline-danger';
-				await this.startRecording();
 			}
 		},
 		async startRecording() {

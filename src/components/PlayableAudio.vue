@@ -1,7 +1,7 @@
 <template>
 	<span class="audio-container">
 		<h5>{{sender}}:</h5>
-		<b-button variant="outline-secondary1" size="md" class="audio-msg-button" @click="playAudio"><b-icon icon="play"></b-icon></b-button>
+		<b-button variant="outline-success" size="md" class="audio-msg-button" @click="playAudio"><b-icon icon="play"></b-icon></b-button>
 	</span>
 </template>
 
