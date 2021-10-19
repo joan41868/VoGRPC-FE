@@ -125,7 +125,7 @@ export default {
 				type: 'audio/webm;codecs=opus',
 				data: text,
 				sender: this.username,
-				roomID: "test"
+				roomID: this.room
 			};
 			console.log("Send: ", vm);
 			this.$socket.emit("sendVoiceMessage", vm);

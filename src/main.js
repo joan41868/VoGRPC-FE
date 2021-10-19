@@ -30,6 +30,9 @@ Vue.use(VueSession, {
 Vue.config.productionTip = false
 
 let  url = "ws://localhost:50515/"
+if (process.env.NODE_ENV.toLowerCase() === "production") {
+  url = "ws://vogprc-be.herokuapp.com/"
+}
 var vueSocketIO = new VueSocketIO({
   connection: io(url, {
     transports: ["websocket"]
